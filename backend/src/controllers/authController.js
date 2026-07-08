@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../prismaClient');
+const sendEmail = require('../utils/sendEmail');
 
 // SIGNUP
 const signup = async (req, res) => {
@@ -87,4 +88,79 @@ const getProfile = async (req, res) => {
     res.status(500).json({ error: 'Something went wrong fetching profile' });
   }
 };
-module.exports = { signup, login, getProfile };
+// UPDATE PROFILE (protected)
+const updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        ...(name && { name }),
+        ...(email && { email }),
+      },
+      select: { id: true, name: true, email: true, createdAt: true },
+    });
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error(error);
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Email already in use' });
+    }
+    res.status(500).json({ error: 'Something went wrong updating profile' });
+  }
+};
+// FORGOT PASSWORD - sends a reset link
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(200).json({ message: 'If that email exists, a reset link was sent' });
+    }
+
+    const resetToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+
+    await sendEmail(
+      user.email,
+      'Password Reset - AI Code Review Assistant',
+      `Click this link to reset your password (valid for 15 minutes): ${resetLink}`
+    );
+
+    res.status(200).json({ message: 'If that email exists, a reset link was sent' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+};
+
+// RESET PASSWORD - uses the token from the email link
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { password: hashedPassword },
+    });
+
+    res.status(200).json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ error: 'Invalid or expired reset link' });
+  }
+};
+module.exports = { signup, login, getProfile, updateProfile, forgotPassword, resetPassword };
