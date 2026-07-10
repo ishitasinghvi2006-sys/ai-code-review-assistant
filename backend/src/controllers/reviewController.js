@@ -1,12 +1,11 @@
 const prisma = require('../prismaClient');
-
+const { runStaticAnalysis } = require('../services/staticAnalysisService');
 // CREATE REVIEW (paste or file upload)
 const createReview = async (req, res) => {
   try {
     const { title, language, sourceType } = req.body;
     let code = req.body.code;
 
-    // if a file was uploaded, read its content instead
     if (req.file) {
       code = req.file.buffer.toString('utf-8');
     }
@@ -24,6 +23,17 @@ const createReview = async (req, res) => {
         userId: req.userId,
       },
     });
+
+    try {
+      const issues = await runStaticAnalysis(code, language);
+      if (issues.length > 0) {
+        await prisma.staticIssue.createMany({
+          data: issues.map((issue) => ({ ...issue, reviewId: review.id })),
+        });
+      }
+    } catch (analysisError) {
+      console.error('Static analysis failed:', analysisError);
+    }
 
     res.status(201).json(review);
   } catch (error) {
