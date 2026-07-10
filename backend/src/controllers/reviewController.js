@@ -1,11 +1,14 @@
 const prisma = require('../prismaClient');
 const { runStaticAnalysis } = require('../services/staticAnalysisService');
+const { runAiReview } = require('../services/aiReviewService');
+
 // CREATE REVIEW (paste or file upload)
 const createReview = async (req, res) => {
   try {
     const { title, language, sourceType } = req.body;
     let code = req.body.code;
 
+    // if a file was uploaded, read its content instead
     if (req.file) {
       code = req.file.buffer.toString('utf-8');
     }
@@ -24,6 +27,7 @@ const createReview = async (req, res) => {
       },
     });
 
+    // run static analysis and save results (don't block the response if this fails)
     try {
       const issues = await runStaticAnalysis(code, language);
       if (issues.length > 0) {
@@ -33,6 +37,18 @@ const createReview = async (req, res) => {
       }
     } catch (analysisError) {
       console.error('Static analysis failed:', analysisError);
+    }
+
+    // run AI review and save results (don't block the response if this fails)
+    try {
+      const aiIssues = await runAiReview(code, language);
+      if (aiIssues.length > 0) {
+        await prisma.aiIssue.createMany({
+          data: aiIssues.map((issue) => ({ ...issue, reviewId: review.id })),
+        });
+      }
+    } catch (aiError) {
+      console.error('AI review failed:', aiError);
     }
 
     res.status(201).json(review);
