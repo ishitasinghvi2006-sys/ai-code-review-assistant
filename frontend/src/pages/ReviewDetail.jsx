@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import api from '../api/axios';
 
 function severityStyles(severity) {
@@ -70,6 +71,7 @@ function ReviewDetail() {
       </div>
 
       <div className="grid gap-6">
+        {/* Static Analysis */}
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-lg">Static Analysis</h2>
@@ -128,6 +130,7 @@ function ReviewDetail() {
           )}
         </div>
 
+        {/* AI Review */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="font-semibold text-lg mb-2">AI Review</h2>
           {review.aiIssues && review.aiIssues.length > 0 ? (
@@ -144,6 +147,7 @@ function ReviewDetail() {
           )}
         </div>
 
+        {/* Complexity Metrics */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="font-semibold text-lg mb-2">Complexity Metrics</h2>
           {review.metrics ? (
@@ -167,6 +171,18 @@ function ReviewDetail() {
             </div>
           ) : (
             <p className="text-gray-400 text-sm">No metrics calculated yet.</p>
+          )}
+        </div>
+
+        {/* Documentation */}
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="font-semibold text-lg mb-2">Documentation</h2>
+          {review.documentation ? (
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown>{review.documentation}</ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm">No documentation generated yet.</p>
           )}
         </div>
       </div>

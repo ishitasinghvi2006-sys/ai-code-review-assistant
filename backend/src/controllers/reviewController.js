@@ -2,6 +2,7 @@ const prisma = require('../prismaClient');
 const { runStaticAnalysis } = require('../services/staticAnalysisService');
 const { runAiReview } = require('../services/aiReviewService');
 const { analyzeComplexity } = require('../services/complexityService');
+const { generateDocumentation } = require('../services/documentationService');
 // CREATE REVIEW (paste or file upload)
 const createReview = async (req, res) => {
   try {
@@ -57,6 +58,16 @@ const createReview = async (req, res) => {
       });
     } catch (metricsError) {
       console.error('Complexity analysis failed:', metricsError);
+    }
+    let documentation = null;
+    try {
+      documentation = await generateDocumentation(code, language);
+      await prisma.review.update({
+        where: { id: review.id },
+        data: { documentation },
+      });
+    } catch (docError) {
+      console.error('Documentation generation failed:', docError);
     }
 
     res.status(201).json(review);
