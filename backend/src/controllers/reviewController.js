@@ -1,7 +1,7 @@
 const prisma = require('../prismaClient');
 const { runStaticAnalysis } = require('../services/staticAnalysisService');
 const { runAiReview } = require('../services/aiReviewService');
-
+const { analyzeComplexity } = require('../services/complexityService');
 // CREATE REVIEW (paste or file upload)
 const createReview = async (req, res) => {
   try {
@@ -49,6 +49,14 @@ const createReview = async (req, res) => {
       }
     } catch (aiError) {
       console.error('AI review failed:', aiError);
+    }
+    try {
+      const metrics = analyzeComplexity(code, language);
+      await prisma.complexityMetric.create({
+        data: { ...metrics, reviewId: review.id },
+      });
+    } catch (metricsError) {
+      console.error('Complexity analysis failed:', metricsError);
     }
 
     res.status(201).json(review);

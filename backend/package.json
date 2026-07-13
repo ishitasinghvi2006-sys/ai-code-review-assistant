@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "acorn": "^8.17.0",
+    "acorn-walk": "^8.3.5",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
