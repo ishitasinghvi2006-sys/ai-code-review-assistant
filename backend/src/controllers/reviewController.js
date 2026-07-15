@@ -3,6 +3,7 @@ const { runStaticAnalysis } = require('../services/staticAnalysisService');
 const { runAiReview } = require('../services/aiReviewService');
 const { analyzeComplexity } = require('../services/complexityService');
 const { generateDocumentation } = require('../services/documentationService');
+
 // CREATE REVIEW (paste or file upload)
 const createReview = async (req, res) => {
   try {
@@ -18,9 +19,22 @@ const createReview = async (req, res) => {
       return res.status(400).json({ error: 'Title, language, and code are required' });
     }
 
+    if (title.trim().length < 1 || title.trim().length > 200) {
+      return res.status(400).json({ error: 'Title must be between 1 and 200 characters' });
+    }
+
+    if (code.length > 50000) {
+      return res.status(400).json({ error: 'Code exceeds maximum length of 50,000 characters' });
+    }
+
+    const allowedLanguages = ['javascript', 'typescript', 'python', 'java', 'other'];
+    if (!allowedLanguages.includes(language.toLowerCase())) {
+      return res.status(400).json({ error: 'Unsupported language' });
+    }
+
     const review = await prisma.review.create({
       data: {
-        title,
+        title: title.trim(),
         language,
         sourceType: sourceType || (req.file ? 'upload' : 'paste'),
         code,
@@ -51,6 +65,8 @@ const createReview = async (req, res) => {
     } catch (aiError) {
       console.error('AI review failed:', aiError);
     }
+
+    // run complexity analysis and save results (don't block the response if this fails)
     try {
       const metrics = analyzeComplexity(code, language);
       await prisma.complexityMetric.create({
@@ -59,9 +75,10 @@ const createReview = async (req, res) => {
     } catch (metricsError) {
       console.error('Complexity analysis failed:', metricsError);
     }
-    let documentation = null;
+
+    // generate documentation and save it (don't block the response if this fails)
     try {
-      documentation = await generateDocumentation(code, language);
+      const documentation = await generateDocumentation(code, language);
       await prisma.review.update({
         where: { id: review.id },
         data: { documentation },
@@ -77,11 +94,22 @@ const createReview = async (req, res) => {
   }
 };
 
-// GET ALL REVIEWS for logged-in user
+// GET ALL REVIEWS for logged-in user (with search and filters)
 const getReviews = async (req, res) => {
   try {
+    const { search, language, sourceType } = req.query;
+
+    const where = {
+      userId: req.userId,
+      ...(search && {
+        title: { contains: search, mode: 'insensitive' },
+      }),
+      ...(language && { language }),
+      ...(sourceType && { sourceType }),
+    };
+
     const reviews = await prisma.review.findMany({
-      where: { userId: req.userId },
+      where,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

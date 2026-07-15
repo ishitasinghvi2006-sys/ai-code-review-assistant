@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const prisma = require('../prismaClient');
 const sendEmail = require('../utils/sendEmail');
-
+const validator = require('validator');
 // SIGNUP
 const signup = async (req, res) => {
   try {
@@ -12,20 +12,30 @@ const signup = async (req, res) => {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    if (name.trim().length < 2) {
+      return res.status(400).json({ error: 'Name must be at least 2 characters' });
+    }
+
     // check if user already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (existingUser) {
       return res.status(409).json({ error: 'Email already in use' });
     }
 
-    // hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword },
+      data: { name: name.trim(), email: email.toLowerCase(), password: hashedPassword },
     });
 
-    // don't send the password back, even hashed
     res.status(201).json({
       id: user.id,
       name: user.name,

@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 import NewReview from './pages/NewReview';
 import ReviewDetail from './pages/ReviewDetail';
 import Profile from './pages/Profile';
-
+import NotFound from './pages/NotFound';
 function App() {
   return (
     <BrowserRouter>
@@ -48,6 +48,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
