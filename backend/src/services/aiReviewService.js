@@ -1,8 +1,8 @@
 const OpenAI = require('openai');
 
 const client = new OpenAI({
-  apiKey: process.env.XAI_API_KEY,
-  baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1',
 });
 
 async function runAiReview(code, language) {
@@ -26,7 +26,7 @@ ${code}
 \`\`\``;
 
   const response = await client.chat.completions.create({
-    model: 'grok-3',
+    model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
   });
 
