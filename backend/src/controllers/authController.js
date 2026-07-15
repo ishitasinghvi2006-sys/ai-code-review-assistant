@@ -137,7 +137,8 @@ const forgotPassword = async (req, res) => {
       { expiresIn: '15m' }
     );
 
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    const resetLink = `${frontendUrl}/reset-password/${resetToken}`;
 
     await sendEmail(
       user.email,

@@ -6,8 +6,15 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 
 const app = express();
+
+const allowedOrigins = (process.env.CORS_ORIGINS ||
+  'http://localhost:5173,https://ai-code-review-assistant-ochre-ten.vercel.app')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://ai-code-review-assistant-ochre-ten.vercel.app'],
+  origin: allowedOrigins,
 }));
 app.use(express.json());
 

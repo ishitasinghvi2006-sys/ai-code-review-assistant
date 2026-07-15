@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const normalizeApiUrl = (url) => {
+  const fallback = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api';
+  const rawUrl = (url || fallback).trim().replace(/\/+$/, '');
+
+  return rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: normalizeApiUrl(import.meta.env.VITE_API_URL),
 });
 
 api.interceptors.request.use((config) => {
