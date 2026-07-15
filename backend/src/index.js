@@ -7,7 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://your-actual-vercel-url.vercel.app'],
+  origin: ['http://localhost:5173', 'https://ai-code-review-assistant-ochre-ten.vercel.app'],
 }));
 app.use(express.json());
 
